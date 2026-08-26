@@ -39,7 +39,7 @@ func main() {
 		if ok {
 			val.callback()
 		} else {
-			fmt.Print("Unknown command")
+			fmt.Print("Unknown command\n")
 		}
 	}
 }
