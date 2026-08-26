@@ -7,13 +7,17 @@ import (
 	"strings"
 )
 
-func main() {
+type cliCommand struct {
+	name        string
+	description string
+	callback    func(*config) error
+}
 
-	type cliCommand struct {
-		name        string
-		description string
-		callback    func() error
-	}
+type config struct {
+	command_list map[string]cliCommand
+}
+
+func main() {
 
 	commands := map[string]cliCommand{
 		"exit": {
@@ -29,32 +33,41 @@ func main() {
 		},
 	}
 
+	comm_reg := &config{commands}
+	REPLloop((comm_reg))
+}
+
+func REPLloop(comms *config) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex >")
 		scanner.Scan()
 		scan_text := scanner.Text()
 		ct := cleanInput(scan_text)
-		val, ok := commands[ct[0]]
+		if len(ct) == 0 {
+			fmt.Print("No command entered\n\n")
+			continue
+		}
+		val, ok := comms.command_list[ct[0]]
 		if ok {
-			val.callback()
+			val.callback(comms)
 		} else {
-			fmt.Print("Unknown command\n")
+			fmt.Print("Unknown command\n\n")
 		}
 	}
 }
 
-func commandExit() error {
-	fmt.Print("Closing the Pokedex... Goodbye!\n")
+func commandExit(*config) error {
+	fmt.Print("Closing the Pokedex... Goodbye!\n\n")
 	os.Exit(0)
-	return fmt.Errorf("No error, exit successful")
+	return nil
 }
 
-func commandHelp() error {
+func commandHelp(*config) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n")
 	fmt.Print("help: Displays a help message\n")
-	fmt.Print("exit: Exit the Pokedex\n")
-	return fmt.Errorf("No error, help successful")
+	fmt.Print("exit: Exit the Pokedex\n\n")
+	return nil
 }
 
 func cleanInput(text string) []string {
