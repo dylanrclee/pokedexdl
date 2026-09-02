@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/dylanrclee/pokedexdl/internal"
 )
 
 type cliCommand struct {
@@ -14,6 +17,7 @@ type cliCommand struct {
 }
 
 type config struct {
+	client       internal.Client
 	command_list map[string]cliCommand
 	Next         string
 	Previous     string
@@ -49,6 +53,7 @@ func main() {
 
 	comm_reg := &config{}
 	comm_reg.command_list = commands
+	comm_reg.client.Cache = internal.NewCache(5 * time.Second)
 	REPLloop((comm_reg))
 }
 
@@ -65,7 +70,10 @@ func REPLloop(comms *config) {
 		}
 		val, ok := comms.command_list[ct[0]]
 		if ok {
-			val.callback(comms)
+			err := val.callback(comms)
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			fmt.Print("Unknown command\n\n")
 		}
@@ -82,6 +90,7 @@ func commandHelp(cur_config *config) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n")
 	fmt.Print("help: Displays a help message\n")
 	fmt.Print("map: Displays the first or next 20 locations\n")
+	fmt.Print("mapb: Displays the previous 20 locations\n")
 	fmt.Print("exit: Exit the Pokedex\n\n")
 	return nil
 }
@@ -93,10 +102,14 @@ func commandMap(cur_config *config) error {
 	} else {
 		call_url = cur_config.Next
 	}
-	var city_struct pokestruct
-	pokeapi(call_url, &city_struct)
+	var city_struct internal.Pokestruct
+	err := internal.Pokeapi(call_url, &city_struct, cur_config.client.Cache)
+	if err != nil {
+		return err
+	}
+	print("\n")
 	for _, val := range city_struct.Results {
-		fmt.Print("\n", val.Name)
+		fmt.Println(val.Name)
 	}
 	fmt.Print("\n\n")
 	cur_config.Previous = city_struct.Previous
@@ -112,10 +125,10 @@ func commandMapb(cur_config *config) error {
 	} else {
 		call_url = cur_config.Previous
 	}
-	var city_struct pokestruct
-	pokeapi(call_url, &city_struct)
+	var city_struct internal.Pokestruct
+	internal.Pokeapi(call_url, &city_struct, cur_config.client.Cache)
 	for _, val := range city_struct.Results {
-		fmt.Print("\n", val.Name)
+		fmt.Println(val.Name)
 	}
 	fmt.Print("\n\n")
 	cur_config.Previous = city_struct.Previous
