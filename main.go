@@ -13,7 +13,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*config, []string) error
 }
 
 type config struct {
@@ -49,6 +49,12 @@ func main() {
 			description: "displays previous 20 location of the pokemon world",
 			callback:    commandMapb,
 		},
+
+		"explore": {
+			name:        "explore",
+			description: "displays the pokemon that can be encountered at the inputed location",
+			callback:    commandexplore,
+		},
 	}
 
 	comm_reg := &config{}
@@ -70,7 +76,7 @@ func REPLloop(comms *config) {
 		}
 		val, ok := comms.command_list[ct[0]]
 		if ok {
-			err := val.callback(comms)
+			err := val.callback(comms, ct)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -80,22 +86,23 @@ func REPLloop(comms *config) {
 	}
 }
 
-func commandExit(cur_config *config) error {
+func commandExit(cur_config *config, _ []string) error {
 	fmt.Print("Closing the Pokedex... Goodbye!\n\n")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(cur_config *config) error {
+func commandHelp(cur_config *config, _ []string) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n")
 	fmt.Print("help: Displays a help message\n")
 	fmt.Print("map: Displays the first or next 20 locations\n")
 	fmt.Print("mapb: Displays the previous 20 locations\n")
+	fmt.Print("explore *location*: Displays the pokemon found at the inputed location\n")
 	fmt.Print("exit: Exit the Pokedex\n\n")
 	return nil
 }
 
-func commandMap(cur_config *config) error {
+func commandMap(cur_config *config, _ []string) error {
 	var call_url string
 	if cur_config.Next == "" {
 		call_url = "https://pokeapi.co/api/v2/location-area/"
@@ -103,11 +110,11 @@ func commandMap(cur_config *config) error {
 		call_url = cur_config.Next
 	}
 	var city_struct internal.Pokestruct
-	err := internal.Pokeapi(call_url, &city_struct, cur_config.client.Cache)
+	err := cur_config.client.ListLocations(call_url, &city_struct, cur_config.client.Cache)
 	if err != nil {
 		return err
 	}
-	print("\n")
+	fmt.Print("\n")
 	for _, val := range city_struct.Results {
 		fmt.Println(val.Name)
 	}
@@ -117,7 +124,7 @@ func commandMap(cur_config *config) error {
 	return nil
 }
 
-func commandMapb(cur_config *config) error {
+func commandMapb(cur_config *config, _ []string) error {
 	var call_url string
 	if cur_config.Previous == "" || cur_config.Previous == "null" {
 		fmt.Print("you're on the first page\n\n")
@@ -126,13 +133,36 @@ func commandMapb(cur_config *config) error {
 		call_url = cur_config.Previous
 	}
 	var city_struct internal.Pokestruct
-	internal.Pokeapi(call_url, &city_struct, cur_config.client.Cache)
+	err := cur_config.client.ListLocations(call_url, &city_struct, cur_config.client.Cache)
+	if err != nil {
+		return err
+	}
+	fmt.Print("\n")
 	for _, val := range city_struct.Results {
 		fmt.Println(val.Name)
 	}
 	fmt.Print("\n\n")
 	cur_config.Previous = city_struct.Previous
 	cur_config.Next = city_struct.Next
+	return nil
+}
+
+func commandexplore(cur_config *config, location []string) error {
+	if len(location) < 2 {
+		fmt.Print("no location entered\n\n")
+		return nil
+	}
+	var pokemon internal.Cityinfo
+	err := cur_config.client.GetLocationPkmn(location[1], &pokemon, cur_config.client.Cache)
+	if err != nil {
+		fmt.Print("\nPossible misspelling of location\n")
+		return err
+	}
+	fmt.Print("\n")
+	for _, val := range pokemon.Pkmn_enc {
+		fmt.Println(val.Pokemon.Name)
+	}
+	fmt.Print("\n\n")
 	return nil
 }
 

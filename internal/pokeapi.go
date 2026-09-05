@@ -24,7 +24,50 @@ type city struct {
 	Url  string `json:"url"`
 }
 
-func Pokeapi(url string, poke_pointer *Pokestruct, poke_cache *Cache) error {
+type Cityinfo struct {
+	Id         int          `json:"id"`
+	Name       string       `json:"name"`
+	Game_index int          `json:"game_index"`
+	Pkmn_enc   []Encounters `json:"pokemon_encounters"`
+}
+
+type Encounters struct {
+	Pokemon struct {
+		Name     string `json:"name"`
+		Pkmn_url string `json:"url"`
+	}
+}
+
+func (c Client) ListLocations(url string, poke_pointer *Pokestruct, poke_cache *Cache) error {
+	body, ok := poke_cache.Get(url)
+
+	if !ok {
+		res, err := http.Get(url)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		body, err = io.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+
+		if res.StatusCode > 299 {
+			return fmt.Errorf("Response failed with status code: %d", res.StatusCode)
+		}
+
+		poke_cache.Add(url, body)
+	}
+	j_err := json.Unmarshal(body, poke_pointer)
+	if j_err != nil {
+		return j_err
+	}
+	return nil
+}
+
+func (c Client) GetLocationPkmn(location string, city_pointer *Cityinfo, poke_cache *Cache) error {
+	url := "https://pokeapi.co/api/v2/location-area/" + location
 
 	body, ok := poke_cache.Get(url)
 
@@ -46,8 +89,7 @@ func Pokeapi(url string, poke_pointer *Pokestruct, poke_cache *Cache) error {
 
 		poke_cache.Add(url, body)
 	}
-
-	j_err := json.Unmarshal(body, poke_pointer)
+	j_err := json.Unmarshal(body, city_pointer)
 	if j_err != nil {
 		return j_err
 	}
