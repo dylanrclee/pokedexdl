@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -17,10 +18,11 @@ type cliCommand struct {
 }
 
 type config struct {
-	client       internal.Client
-	command_list map[string]cliCommand
-	Next         string
-	Previous     string
+	client         internal.Client
+	caught_pokemon map[string]internal.Pokemon
+	command_list   map[string]cliCommand
+	Next           string
+	Previous       string
 }
 
 func main() {
@@ -55,9 +57,16 @@ func main() {
 			description: "displays the pokemon that can be encountered at the inputed location",
 			callback:    commandexplore,
 		},
+
+		"catch": {
+			name:        "catch",
+			description: "shows catching messages depending on if pokemon was caught based on its catch rate",
+			callback:    commandcatch,
+		},
 	}
 
 	comm_reg := &config{}
+	comm_reg.caught_pokemon = make(map[string]internal.Pokemon)
 	comm_reg.command_list = commands
 	comm_reg.client.Cache = internal.NewCache(5 * time.Second)
 	REPLloop((comm_reg))
@@ -152,17 +161,43 @@ func commandexplore(cur_config *config, location []string) error {
 		fmt.Print("no location entered\n\n")
 		return nil
 	}
-	var pokemon internal.Cityinfo
-	err := cur_config.client.GetLocationPkmn(location[1], &pokemon, cur_config.client.Cache)
+	var location_pokemon internal.Cityinfo
+	err := cur_config.client.GetLocationPkmn(location[1], &location_pokemon, cur_config.client.Cache)
 	if err != nil {
 		fmt.Print("\nPossible misspelling of location\n")
 		return err
 	}
 	fmt.Print("\n")
-	for _, val := range pokemon.Pkmn_enc {
+	for _, val := range location_pokemon.Pkmn_enc {
 		fmt.Println(val.Pokemon.Name)
 	}
 	fmt.Print("\n\n")
+	return nil
+}
+
+func commandcatch(cur_config *config, catching_pokemon []string) error {
+	if len(catching_pokemon) < 2 {
+		fmt.Print("no pokemon entered\n\n")
+		return nil
+	}
+
+	var pokemoninfo internal.Pokemon
+	err := cur_config.client.GetPokemoninfo(catching_pokemon[1], &pokemoninfo, cur_config.client.Cache)
+	if err != nil {
+		fmt.Print("\nPossible misspelling of pokemon\n")
+		return err
+	}
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemoninfo.Name)
+	ok := rand.Intn(400) >= pokemoninfo.Base_exp
+
+	if !ok {
+		fmt.Printf("%s escaped!\n\n", pokemoninfo.Name)
+		return nil
+	} else {
+		fmt.Printf("%s was caught!\n\n", pokemoninfo.Name)
+		cur_config.caught_pokemon[pokemoninfo.Name] = pokemoninfo
+	}
 	return nil
 }
 

@@ -38,27 +38,23 @@ type Encounters struct {
 	}
 }
 
+type Pokemon struct {
+	Name     string `json:"name"`
+	Base_exp int    `json:"base_experience"`
+}
+
 func (c Client) ListLocations(url string, poke_pointer *Pokestruct, poke_cache *Cache) error {
 	body, ok := poke_cache.Get(url)
 
+	var err error
 	if !ok {
-		res, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
-		body, err = io.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-
-		if res.StatusCode > 299 {
-			return fmt.Errorf("Response failed with status code: %d", res.StatusCode)
-		}
-
+		body, err = getAPIData(url)
 		poke_cache.Add(url, body)
 	}
+	if err != nil {
+		return err
+	}
+
 	j_err := json.Unmarshal(body, poke_pointer)
 	if j_err != nil {
 		return j_err
@@ -71,27 +67,60 @@ func (c Client) GetLocationPkmn(location string, city_pointer *Cityinfo, poke_ca
 
 	body, ok := poke_cache.Get(url)
 
+	var err error
 	if !ok {
-		res, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
-		body, err = io.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-
-		if res.StatusCode > 299 {
-			return fmt.Errorf("Response failed with status code: %d", res.StatusCode)
-		}
-
+		body, err = getAPIData(url)
 		poke_cache.Add(url, body)
 	}
+	if err != nil {
+		return err
+	}
+
 	j_err := json.Unmarshal(body, city_pointer)
 	if j_err != nil {
 		return j_err
 	}
 	return nil
+}
+
+func (c Client) GetPokemoninfo(poke_string string, pokemon_pointer *Pokemon, poke_cache *Cache) error {
+	url := "https://pokeapi.co/api/v2/pokemon/" + poke_string
+
+	body, ok := poke_cache.Get(url)
+
+	var err error
+	if !ok {
+		body, err = getAPIData(url)
+		poke_cache.Add(url, body)
+	}
+	if err != nil {
+		return err
+	}
+
+	j_err := json.Unmarshal(body, pokemon_pointer)
+	if j_err != nil {
+		return j_err
+	}
+
+	return nil
+}
+
+func getAPIData(url string) ([]byte, error) {
+	var blank_body []byte
+	res, err := http.Get(url)
+	if err != nil {
+		return blank_body, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return blank_body, err
+	}
+
+	if res.StatusCode > 299 {
+		return body, fmt.Errorf("Response failed with status code: %d", res.StatusCode)
+	}
+
+	return body, err
 }
