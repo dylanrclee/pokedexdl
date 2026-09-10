@@ -63,6 +63,12 @@ func main() {
 			description: "shows catching messages depending on if pokemon was caught based on its catch rate",
 			callback:    commandcatch,
 		},
+
+		"inspect": {
+			name:        "inspect",
+			description: "shows the stats of inputed pokemon if it is in the user's caught pokemon list",
+			callback:    commandinspect,
+		},
 	}
 
 	comm_reg := &config{}
@@ -102,11 +108,13 @@ func commandExit(cur_config *config, _ []string) error {
 }
 
 func commandHelp(cur_config *config, _ []string) error {
-	fmt.Print("Welcome to the Pokedex!\nUsage:\n")
+	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	fmt.Print("help: Displays a help message\n")
 	fmt.Print("map: Displays the first or next 20 locations\n")
 	fmt.Print("mapb: Displays the previous 20 locations\n")
 	fmt.Print("explore *location*: Displays the pokemon found at the inputed location\n")
+	fmt.Print("catch *pokemon name*: Attempts to catch the inputed pokemon and add it to users caught pokemon\n")
+	fmt.Print("inspect *pokemon name*: Shows the stats of a caught pokemon\n")
 	fmt.Print("exit: Exit the Pokedex\n\n")
 	return nil
 }
@@ -197,6 +205,30 @@ func commandcatch(cur_config *config, catching_pokemon []string) error {
 	} else {
 		fmt.Printf("%s was caught!\n\n", pokemoninfo.Name)
 		cur_config.caught_pokemon[pokemoninfo.Name] = pokemoninfo
+	}
+	return nil
+}
+
+func commandinspect(cur_config *config, searched_pokemon []string) error {
+	pokemoninfo, ok := cur_config.caught_pokemon[searched_pokemon[1]]
+
+	if !ok {
+		fmt.Print("you have not caught that pokemon\n\n")
+		return nil
+	} else {
+		fmt.Printf("Name: %s\n", pokemoninfo.Name)
+		fmt.Printf("Height: %d\n", pokemoninfo.Height)
+		fmt.Printf("Weight: %d\n", pokemoninfo.Weight)
+		fmt.Println("Stats:")
+		for _, val := range pokemoninfo.Stats {
+			fmt.Printf("   - %s: %d\n", val.Stat.Name, val.Basestat)
+		}
+		fmt.Println("Types:")
+		for _, val := range pokemoninfo.Types {
+			fmt.Printf("   - %s\n", val.Poketype.Name)
+		}
+		fmt.Print("\n")
+
 	}
 	return nil
 }

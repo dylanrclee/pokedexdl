@@ -39,8 +39,32 @@ type Encounters struct {
 }
 
 type Pokemon struct {
-	Name     string `json:"name"`
-	Base_exp int    `json:"base_experience"`
+	Name     string      `json:"name"`
+	Height   int         `json:"height"`
+	Weight   int         `json:"weight"`
+	Base_exp int         `json:"base_experience"`
+	Stats    []Stats     `json:"stats"`
+	Types    []Poketypes `json:"types"`
+}
+
+type Stats struct {
+	Basestat int  `json:"base_stat"`
+	Stat     Stat `json:"stat"`
+}
+
+type Stat struct {
+	Name string `json:"name"`
+	Url  string `json:"url"`
+}
+
+type Poketypes struct {
+	Slot     int      `json:"slot"`
+	Poketype Poketype `json:"type"`
+}
+
+type Poketype struct {
+	Name string `json:"name"`
+	Url  string `json:"url"`
 }
 
 func (c Client) ListLocations(url string, poke_pointer *Pokestruct, poke_cache *Cache) error {
