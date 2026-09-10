@@ -69,6 +69,12 @@ func main() {
 			description: "shows the stats of inputed pokemon if it is in the user's caught pokemon list",
 			callback:    commandinspect,
 		},
+
+		"pokedex": {
+			name:        "pokedex",
+			description: "shows a list of all caught pokemon",
+			callback:    commandpokedex,
+		},
 	}
 
 	comm_reg := &config{}
@@ -203,7 +209,8 @@ func commandcatch(cur_config *config, catching_pokemon []string) error {
 		fmt.Printf("%s escaped!\n\n", pokemoninfo.Name)
 		return nil
 	} else {
-		fmt.Printf("%s was caught!\n\n", pokemoninfo.Name)
+		fmt.Printf("%s was caught!\n", pokemoninfo.Name)
+		fmt.Print("You may now inspect it with the inspect command.\n\n")
 		cur_config.caught_pokemon[pokemoninfo.Name] = pokemoninfo
 	}
 	return nil
@@ -230,6 +237,15 @@ func commandinspect(cur_config *config, searched_pokemon []string) error {
 		fmt.Print("\n")
 
 	}
+	return nil
+}
+
+func commandpokedex(cur_config *config, _ []string) error {
+	fmt.Println("Your Pokedex:")
+	for _, val := range cur_config.caught_pokemon {
+		fmt.Printf(" - %s\n", val.Name)
+	}
+	fmt.Print("\n\n")
 	return nil
 }
 
